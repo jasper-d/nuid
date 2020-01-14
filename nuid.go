@@ -34,11 +34,11 @@ import (
 const Version = "1.0.1"
 
 const (
-	digits   = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	base     = 62
+	digits   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+	base     = 64
 	preLen   = 12
 	seqLen   = 10
-	maxSeq   = int64(839299365868340224) // base^seqLen == 62^10
+	maxSeq   = int64(0x0fff_ffff_ffff_ffff) // base^seqLen == 64^10 - 1
 	minInc   = int64(33)
 	maxInc   = int64(333)
 	totalLen = preLen + seqLen
@@ -93,7 +93,7 @@ func Next() string {
 func (n *NUID) Next() string {
 	// Increment and capture.
 	n.seq += n.inc
-	if n.seq >= maxSeq {
+	if n.seq > maxSeq {
 		n.RandomizePrefix()
 		n.resetSequential()
 	}
@@ -105,9 +105,9 @@ func (n *NUID) Next() string {
 	copy(bs, n.pre)
 
 	// copy in the seq in base62.
-	for i, l := len(b), seq; i > preLen; l /= base {
+	for i, l := len(b), seq; i > preLen; l >>= 6 {
 		i -= 1
-		b[i] = digits[l%base]
+		b[i] = digits[l & (base - 1)]
 	}
 	return string(b[:])
 }
@@ -129,6 +129,6 @@ func (n *NUID) RandomizePrefix() {
 	}
 
 	for i := 0; i < preLen; i++ {
-		n.pre[i] = digits[int(cbs[i])%base]
+		n.pre[i] = digits[int(cbs[i]) & (base - 1)]
 	}
 }
